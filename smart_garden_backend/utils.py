@@ -1,4 +1,4 @@
-from .models import *
+from authentication.models import *
 import re
 
 regexEmail = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b'
@@ -16,8 +16,9 @@ def valid(regex: str, sample: str) -> bool:
     return result[0] == sample
 
 def getUserFromToken(accessToken: str) -> User:
-        user_session = UserSession.objects.filter(access_token=accessToken)
-        if len(user_session) == 0:
-            return None
-        
-        return user_session[0].user_id
+    user_session = UserSession.objects.filter(access_token=accessToken)
+    if len(user_session) == 0:
+        return None
+    if user_session[0].deleted_at is not None:
+        return None
+    return user_session[0].user_id

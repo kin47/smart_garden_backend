@@ -6,9 +6,8 @@ from django.http import HttpRequest, HttpResponse
 from .models import *
 import jwt
 from datetime import datetime, timedelta
-from . import utils
+from smart_garden_backend import utils, settings
 from .security import Bcrypt
-from smart_garden_backend import settings
 
 # Create your views here.
 class Login(APIView):
@@ -17,11 +16,11 @@ class Login(APIView):
         password = request.data.get('password')
         user = User.objects.filter(email=email)
         if len(user) == 0:
-            return Response(status=status.HTTP_401_UNAUTHORIZED, data={'message': 'Email hoặc mật khẩu không đúng'})
+            return Response(status=status.HTTP_403_FORBIDDEN, data={'message': 'Email hoặc mật khẩu không đúng'})
         else:
             user = user[0]
             if Bcrypt.checkpw(password, user.password) == False:
-                return Response(status=status.HTTP_401_UNAUTHORIZED, data={'message': 'Email hoặc mật khẩu không đúng'})
+                return Response(status=status.HTTP_403_FORBIDDEN, data={'message': 'Email hoặc mật khẩu không đúng'})
             else:
                 payload = {
                     'user_id': user.id,
@@ -60,7 +59,7 @@ class Register(APIView):
         if len(user_with_this_email) > 0:
             return Response(status=status.HTTP_400_BAD_REQUEST, data={'message': 'Email đã tồn tại'})
         
-        user_with_this_phone_number = User.objects.filter(email=phone_number)
+        user_with_this_phone_number = User.objects.filter(phone_number=phone_number)
         if len(user_with_this_phone_number) > 0:
             return Response(status=status.HTTP_400_BAD_REQUEST, data={'message': 'Số điện thoại đã tồn tại'})
         
@@ -80,3 +79,26 @@ class Logout(APIView):
             return Response(status=status.HTTP_401_UNAUTHORIZED, data={'message': 'Token không hợp lệ'})
         user_session.update(deleted_at=datetime.now())
         return Response(status=status.HTTP_200_OK, data={'message': 'Đăng xuất thành công'})
+    
+class Me(APIView):
+    def get(self, request):
+        header = request.headers.get('Authorization')
+        if header == None:
+            return Response(status=status.HTTP_401_UNAUTHORIZED, data={'message': 'Token không hợp lệ'})
+        access_token = header.split(' ')[1]
+        user = utils.getUserFromToken(access_token)
+        if user == None:
+            return Response(status=status.HTTP_401_UNAUTHORIZED, data={'message': 'Token không hợp lệ'})
+        else:
+            user_json = {
+                'id': user.id,
+                'email': user.email,
+                'name': user.name,
+                'phone_number': user.phone_number,
+                'avatar': user.avatar,
+                'is_admin': user.is_admin,
+                'can_predict_disease': user.can_predict_disease,
+                'can_receive_noti': user.can_receive_noti,
+                'is_verified': user.is_verified
+            }
+            return Response(status=status.HTTP_200_OK, data={'data': user_json})
