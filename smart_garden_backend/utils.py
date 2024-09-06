@@ -1,5 +1,10 @@
 from authentication.models import *
 import re
+from . import settings
+import jwt
+from datetime import datetime
+from django.utils import timezone
+import pytz
 
 regexEmail = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b'
 regexPassword = r'^(?=.*[A-Z])(?=.*[a-z])(?=.*[@#$%^&+=!])(?=.*[0-9]).{8,}$'
@@ -16,9 +21,24 @@ def valid(regex: str, sample: str) -> bool:
     return result[0] == sample
 
 def getUserFromToken(accessToken: str) -> User:
+    try:
+        # Decode the JWT
+        decoded_token = jwt.decode(accessToken, settings.JWT_SECRET_KEY, algorithms=['HS256'])
+        expired_at_timestamp = decoded_token.get('expired_at')
+        expired_at = datetime.fromtimestamp(expired_at_timestamp, pytz.timezone('Asia/Ho_Chi_Minh'))
+        now_local = timezone.now().astimezone(pytz.timezone('Asia/Ho_Chi_Minh'))
+        if now_local > expired_at:
+            return None
+    except jwt.ExpiredSignatureError:
+        return None  # The token signature has expired
+    except jwt.InvalidTokenError:
+        return None  # The token is invalid
+    
     user_session = UserSession.objects.filter(access_token=accessToken)
     if len(user_session) == 0:
         return None
-    if user_session[0].deleted_at is not None:
+    session = user_session[0]
+    if session.deleted_at is not None:
         return None
-    return user_session[0].user_id
+    
+    return session.user_id

@@ -8,8 +8,15 @@ import jwt
 from datetime import datetime, timedelta
 from smart_garden_backend import utils, settings
 from .security import Bcrypt
+from django.core.mail import EmailMessage
+from django.contrib.sites.shortcuts import get_current_site
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.contrib import messages
+from .tokens import account_activation_token
+from django.template.loader import render_to_string
 
-# Create your views here.
+# Create your views here
 class Login(APIView):
     def post(self, request):
         email = request.data.get('email')
@@ -21,6 +28,9 @@ class Login(APIView):
             user = user[0]
             if Bcrypt.checkpw(password, user.password) == False:
                 return Response(status=status.HTTP_403_FORBIDDEN, data={'message': 'Email hoặc mật khẩu không đúng'})
+            if user.is_verified == False:
+                AccountVerification.activateEmail(request, user, user.email)
+                return Response(status=status.HTTP_403_FORBIDDEN, data={'message': 'Tài khoản chưa được xác thực, hãy kiểm tra email để xác thực tài khoản'})
             else:
                 payload = {
                     'user_id': user.id,
@@ -66,6 +76,8 @@ class Register(APIView):
         user = User(email=email, password=Bcrypt.hashpw(password=password), name=name, phone_number=phone_number)
         user.save()
         
+        AccountVerification.activateEmail(request, user, user.email)
+        
         return Response(status=status.HTTP_201_CREATED, data={'message': 'Đăng ký thành công, hãy kiểm tra email để xác thực tài khoản'})
     
     
@@ -102,3 +114,47 @@ class Me(APIView):
                 'is_verified': user.is_verified
             }
             return Response(status=status.HTTP_200_OK, data={'data': user_json})
+        
+class AccountVerification(APIView):
+    def activate(request, uidb64, token):
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+        except:
+            user = None
+
+        if user is not None and account_activation_token.check_token(user, token):
+            user.is_verified = True
+            user.save()
+            return render(request, 'verify_success.html')
+        else:
+            return render(request, 'verify_fail.html')
+
+    def activateEmail(request, user, to_email):
+        mail_subject = "Kích hoạt tài khoản Smart Garden."
+        message = render_to_string("template_activate_account.html", {
+            'user': user.name,
+            'domain': get_current_site(request).domain,
+            'uid': urlsafe_base64_encode(force_bytes(user.pk)),
+            'token': account_activation_token.make_token(user),
+            "protocol": 'http'
+        })
+        email = EmailMessage(mail_subject, message, to=[to_email])
+        if email.send():
+            print(f'Dear <b>{user}</b>, please go to you email <b>{to_email}</b> inbox and click on \
+                    received activation link to confirm and complete the registration. <b>Note:</b> Check your spam folder.')
+        else:
+            print(f'Problem sending email to {to_email}, check if you typed it correctly.')
+            
+    def post(self, request):
+        email = request.data.get('email')
+        user = User.objects.filter(email=email)
+        if len(user) == 0:
+            return Response(status=status.HTTP_400_BAD_REQUEST, data={'message': 'Email không tồn tại'})
+        else:
+            user = user[0]
+            if user.is_verified == True:
+                return Response(status=status.HTTP_400_BAD_REQUEST, data={'message': 'Tài khoản đã được xác thực'})
+            else:
+                AccountVerification.activateEmail(request, user, user.email)
+                return Response(status=status.HTTP_200_OK, data={'message': 'Gửi lại email xác thực thành công'})
