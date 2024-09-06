@@ -17,11 +17,10 @@ class GetStores(APIView):
             return Response(status=status.HTTP_401_UNAUTHORIZED, data={'message': 'Token không hợp lệ'})
         
         try:
-            limit = int(request.query_params.get('limit', 10))  # Get 'limit' from query params, default to 10
-            page = int(request.query_params.get('page', 1))     # Get 'page' from query params, default to 1
+            limit = int(request.query_params.get('limit', 10))
+            page = int(request.query_params.get('page', 1))
         except ValueError:
             return Response({'message': 'Parameters `limit` and `page` must be integers'}, status=status.HTTP_400_BAD_REQUEST)
-
         if limit <= 0 or page <= 0:
             return Response({'message': '`limit` and `page` must be positive integers'}, status=status.HTTP_400_BAD_REQUEST)
 

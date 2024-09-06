@@ -40,7 +40,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'authentication',
-    'store'
+    'store',
+    "verify_email.apps.VerifyEmailConfig",
 ]
 
 MIDDLEWARE = [
@@ -103,6 +104,15 @@ JWT_HEADER = {
 }
 
 JWT_SECRET_KEY = 'smart_garden_backend'
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'kin472k2@gmail.com'
+EMAIL_HOST_PASSWORD = 'dxrtxinhcopczslx'
+
+DEFAULT_FROM_EMAIL = 'noreply<no_reply@domain.com>'
 
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators

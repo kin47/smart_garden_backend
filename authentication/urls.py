@@ -6,4 +6,6 @@ urlpatterns = [
     path('register', view=views.Register.as_view(), name='register'),
     path('logout', view=views.Logout.as_view(), name='logout'),
     path('me', view=views.Me.as_view(), name='me'),
+    path('resend', views.AccountVerification.as_view(), name='resend'),
+    path('activate/<uidb64>/<token>', views.AccountVerification.activate, name='activate')
 ]
