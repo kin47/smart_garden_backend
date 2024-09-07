@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 """
 
 from pathlib import Path
+import firebase_admin
+from firebase_admin import credentials
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -41,7 +43,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'authentication',
     'store',
-    "verify_email.apps.VerifyEmailConfig",
+    'notification',
+    'device_token',
 ]
 
 MIDDLEWARE = [
@@ -113,6 +116,11 @@ EMAIL_HOST_USER = 'kin472k2@gmail.com'
 EMAIL_HOST_PASSWORD = 'dxrtxinhcopczslx'
 
 DEFAULT_FROM_EMAIL = 'noreply<no_reply@domain.com>'
+
+SERVICE_ACCOUNT_FILE = 'smart_garden_backend\smart-garden-cd3b0-firebase-adminsdk-ztz3u-7624df0b06.json'
+
+cred = credentials.Certificate(SERVICE_ACCOUNT_FILE)
+firebase_admin.initialize_app(cred)
 
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators
