@@ -5,6 +5,7 @@ import jwt
 from datetime import datetime
 from django.utils import timezone
 import pytz
+from device_token.models import *
 
 regexEmail = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b'
 regexPassword = r'^(?=.*[A-Z])(?=.*[a-z])(?=.*[@#$%^&+=!])(?=.*[0-9]).{8,}$'
@@ -28,8 +29,12 @@ def getUserFromToken(accessToken: str) -> User:
         expired_at = datetime.fromtimestamp(expired_at_timestamp, pytz.timezone('Asia/Ho_Chi_Minh'))
         now_local = timezone.now().astimezone(pytz.timezone('Asia/Ho_Chi_Minh'))
         if now_local > expired_at:
+            # Delete the device token that associated with this access token
+            DeviceToken.objects.filter(access_token=accessToken).delete()
             return None
     except jwt.ExpiredSignatureError:
+        # Delete the device token that associated with this access token
+        DeviceToken.objects.filter(access_token=accessToken).delete()
         return None  # The token signature has expired
     except jwt.InvalidTokenError:
         return None  # The token is invalid
@@ -39,6 +44,8 @@ def getUserFromToken(accessToken: str) -> User:
         return None
     session = user_session[0]
     if session.deleted_at is not None:
+        # Delete the device token that associated with this access token
+        DeviceToken.objects.filter(access_token=accessToken).delete()
         return None
     
     return session.user_id

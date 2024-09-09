@@ -14,6 +14,7 @@ from django.utils.encoding import force_bytes, force_str
 from django.contrib import messages
 from .tokens import account_activation_token
 from django.template.loader import render_to_string
+from device_token.models import DeviceToken
 
 # Create your views here
 class Login(APIView):
@@ -43,7 +44,7 @@ class Login(APIView):
                     'expired_at': (datetime.now() + timedelta(seconds=settings.JWT_EXPIRES)).timestamp()
                 }
                 token = jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm='HS256')
-                # Delete all user's session
+                # Delete all user's session and it's old device token
                 UserSession.objects.filter(user_id=user, deleted_at=None).update(deleted_at=datetime.now())
                 # Create new session
                 UserSession.objects.create(user_id=user, access_token=token, created_at=datetime.now())

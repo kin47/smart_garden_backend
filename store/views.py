@@ -4,6 +4,7 @@ from rest_framework import status
 from rest_framework.views import APIView
 from .models import Store
 from smart_garden_backend import utils 
+from smart_garden_backend.push_notification import *
 
 class GetStores(APIView):
     def get(self, request):
@@ -23,6 +24,8 @@ class GetStores(APIView):
             return Response({'message': 'Parameters `limit` and `page` must be integers'}, status=status.HTTP_400_BAD_REQUEST)
         if limit <= 0 or page <= 0:
             return Response({'message': '`limit` and `page` must be positive integers'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        send_fcm_notification(1, 'Test notification')
 
         try:
             sql = """
