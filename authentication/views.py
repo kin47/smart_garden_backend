@@ -21,12 +21,17 @@ class Login(APIView):
     def post(self, request):
         email = request.data.get('email')
         password = request.data.get('password')
+        is_admin = request.data.get('is_admin')
+        if is_admin == None:
+            is_admin = False
         user = User.objects.filter(email=email)
         if len(user) == 0:
             return Response(status=status.HTTP_403_FORBIDDEN, data={'message': 'Email hoặc mật khẩu không đúng'})
         else:
             user = user[0]
             if Bcrypt.checkpw(password, user.password) == False:
+                return Response(status=status.HTTP_403_FORBIDDEN, data={'message': 'Email hoặc mật khẩu không đúng'})
+            if user.is_admin != is_admin:
                 return Response(status=status.HTTP_403_FORBIDDEN, data={'message': 'Email hoặc mật khẩu không đúng'})
             if user.is_verified == False:
                 AccountVerification.activateEmail(request, user, user.email)

@@ -14,6 +14,7 @@ class User(models.Model):
     avatar = models.CharField(db_column='avatar', max_length=255)
     can_predict_disease = models.BooleanField(db_column='can_predict_disease', default=True)
     can_receive_noti = models.BooleanField(db_column='can_receive_noti', default=True)
+    can_auto_control = models.BooleanField(db_column='can_auto_control', default=True)
     is_admin = models.BooleanField(db_column='is_admin', default=False)
     is_verified = models.BooleanField(db_column='is_verified', default=False)
 
