@@ -8,4 +8,5 @@ urlpatterns = [
     path('api/v1/notification/', include('notification.urls')),
     path('api/v1/device-token', include('device_token.urls')),
     path('api/v1/admin/user-management/', include('user_management.urls')),
+    path('api/v1/admin/kit/', include('kit.urls')),
 ]

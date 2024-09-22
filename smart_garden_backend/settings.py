@@ -47,7 +47,8 @@ INSTALLED_APPS = [
     'store',
     'notification',
     'device_token',
-    'user_management'
+    'user_management',
+    'kit',
 ]
 
 MIDDLEWARE = [
