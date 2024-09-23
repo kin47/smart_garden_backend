@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'device_token',
     'user_management',
     'kit',
+    'disease_detection'
 ]
 
 MIDDLEWARE = [
@@ -125,7 +126,9 @@ DEFAULT_FROM_EMAIL = 'noreply<no_reply@domain.com>'
 SERVICE_ACCOUNT_FILE = 'smart_garden_backend\smart-garden-cd3b0-firebase-adminsdk-ztz3u-7624df0b06.json'
 
 cred = credentials.Certificate(SERVICE_ACCOUNT_FILE)
-firebase_admin.initialize_app(cred)
+firebase_admin.initialize_app(cred, {
+    'storageBucket': 'smart-garden-cd3b0.appspot.com'
+})
 
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators
