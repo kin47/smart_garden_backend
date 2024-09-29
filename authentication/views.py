@@ -15,6 +15,7 @@ from django.contrib import messages
 from .tokens import account_activation_token
 from django.template.loader import render_to_string
 from device_token.models import DeviceToken
+from firebase_admin import storage
 
 # Create your views here
 class Login(APIView):
@@ -52,10 +53,10 @@ class Login(APIView):
                 # Delete all user's session and it's old device token
                 UserSession.objects.filter(user_id=user, deleted_at=None).update(deleted_at=datetime.now())
                 # Create new session
+                print('Token Length: ', len(token)),
                 UserSession.objects.create(user_id=user, access_token=token, created_at=datetime.now())
                 return Response(status=status.HTTP_200_OK, data={'access_token': token})
  
-    
 class Register(APIView):
     def post(self, request):
         email = request.data.get('email')
@@ -85,7 +86,6 @@ class Register(APIView):
         
         return Response(status=status.HTTP_201_CREATED, data={'message': 'Đăng ký thành công, hãy kiểm tra email để xác thực tài khoản'})
     
-    
 class Logout(APIView):
     def post(self, request):
         access_token = request.headers.get('Authorization').split(' ')[1]
@@ -113,13 +113,61 @@ class Me(APIView):
                 'name': user.name,
                 'phone_number': user.phone_number,
                 'avatar': user.avatar,
+                'cover_image': user.cover_image,
                 'is_admin': user.is_admin,
                 'can_predict_disease': user.can_predict_disease,
                 'can_receive_noti': user.can_receive_noti,
                 'is_verified': user.is_verified
             }
             return Response(status=status.HTTP_200_OK, data={'data': user_json})
-        
+
+class UpdateInfo(APIView):
+    def put(self, request):
+        header = request.headers.get('Authorization')
+        if header == None:
+            return Response(status=status.HTTP_401_UNAUTHORIZED, data={'message': 'Token không hợp lệ'})
+        access_token = header.split(' ')[1]
+        user = utils.getUserFromToken(access_token)
+        if user == None:
+            return Response(status=status.HTTP_401_UNAUTHORIZED, data={'message': 'Token không hợp lệ'})
+        try:
+            current_password = request.data.get('current_password')
+            new_password = request.data.get('new_password')
+            new_name = request.data.get('new_name')
+            new_avatar = request.FILES.get('new_avatar', None)  
+            new_cover_image = request.FILES.get('new_cover_image', None)
+            if new_avatar == None and new_cover_image == None and new_name == None and current_password == None and new_password == None:
+                return Response(status=status.HTTP_400_BAD_REQUEST, data={'message': 'Không có thông tin nào được cập nhật'})
+            if current_password == None and new_password != None:
+                return Response(status=status.HTTP_400_BAD_REQUEST, data={'message': 'Để cập nhật mật khâu mới, bạn cần nhập cả mật khẩu hiện tại và mật khẩu mới'})
+            if current_password != None and new_password == None:
+                return Response(status=status.HTTP_400_BAD_REQUEST, data={'message': 'Để cập nhật mật khẩu mới, bạn cần nhập cả mật khẩu hiện tại và mật khẩu mới'})
+            if new_name != None:
+                user.name = new_name         
+            if current_password != None and new_password != None:
+                if Bcrypt.checkpw(current_password, user.password) == False:
+                    return Response(status=status.HTTP_400_BAD_REQUEST, data={'message': 'Mật khẩu hiện tại không đúng'})
+                if utils.valid(utils.regexPassword, new_password) == False:
+                    return Response(status=status.HTTP_400_BAD_REQUEST, data={'message': 'Mật khẩu mới không đúng định dạng'})
+                user.password = Bcrypt.hashpw(new_password)
+            # Upload the image to Firebase Storage
+            if new_avatar != None:
+                bucket = storage.bucket()
+                blob = bucket.blob(f'avatar/{user.id}_{new_avatar}_{round(1000 * datetime.timestamp(datetime.now()))}')
+                blob.upload_from_file(new_avatar, content_type=new_avatar.content_type)
+                blob.make_public()
+                user.avatar = blob.public_url
+            if new_cover_image != None:
+                bucket = storage.bucket()
+                blob = bucket.blob(f'cover_image/{user.id}_{new_avatar}_{round(1000 * datetime.timestamp(datetime.now()))}')
+                blob.upload_from_file(new_cover_image, content_type=new_cover_image.content_type)
+                blob.make_public()
+                user.cover_image = blob.public_url
+            user.save()
+            return Response(status=status.HTTP_200_OK, data={'message': 'Cập nhật thông tin thành công'})
+        except Exception as e:
+            return Response(status=status.HTTP_400_BAD_REQUEST, data={'message': str(e)})
+
 class AccountVerification(APIView):
     def activate(request, uidb64, token):
         try:

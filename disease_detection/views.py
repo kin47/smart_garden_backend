@@ -55,6 +55,7 @@ class HistoryPredictDisease(APIView):
                 {
                     'id': predict.id,
                     'image': predict.image,
+                    'plant': predict.disease_id.tree_id.name,
                     'disease': predict.disease_id.disease_name,
                     'send_at': predict.send_at
                 }
@@ -92,14 +93,14 @@ class DiseaseDetection(APIView):
             
             # Upload the image to Firebase Storage
             bucket = storage.bucket()
-            blob = bucket.blob(f'images/{image_name}')
+            blob = bucket.blob(f'disease_detection/{image_name}')
             blob.upload_from_file(image, content_type=image.content_type)
             blob.make_public()  # Make the image publicly accessible
             image_url = blob.public_url  # Get the public URL of the image
             
             print("@@ Predicting class......")
             # Open the image directly from the uploaded file
-            pil_image = Image.open(image)
+            pil_image = Image.open(image).convert('RGB')
             pil_image = pil_image.resize((128, 128))  # Resize the image
 
             # Convert to numpy array and normalize
@@ -114,7 +115,8 @@ class DiseaseDetection(APIView):
 
             disease = Disease.objects.get(pk=pred)
             data = {
-                'tree': disease.tree_id.name,
+                'image': image_url,
+                'plant': disease.tree_id.name,
                 'disease': disease.disease_name,
                 'treatment': disease.treatment,
                 'reference': disease.reference,
@@ -126,6 +128,6 @@ class DiseaseDetection(APIView):
                 disease_id=disease,
                 send_at=datetime.now()
             )
-            return Response(status=status.HTTP_200_OK, data=data)
+            return Response(status=status.HTTP_200_OK, data={'data': data})
         except Exception as e:
             return Response({'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
