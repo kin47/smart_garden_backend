@@ -43,10 +43,8 @@ class Login(APIView):
                     'email': user.email,
                     'name': user.name,
                     'phone_number': user.phone_number,
-                    'avatar': user.avatar,
                     'is_admin': user.is_admin,
-                    'can_predict_disease': user.can_predict_disease,
-                    'can_receive_noti': user.can_receive_noti,
+                    'kit_id': user.kit_id,
                     'expired_at': (datetime.now() + timedelta(seconds=settings.JWT_EXPIRES)).timestamp()
                 }
                 token = jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm='HS256')
@@ -117,6 +115,7 @@ class Me(APIView):
                 'is_admin': user.is_admin,
                 'can_predict_disease': user.can_predict_disease,
                 'can_receive_noti': user.can_receive_noti,
+                'kit_id': user.kit_id,
                 'is_verified': user.is_verified
             }
             return Response(status=status.HTTP_200_OK, data={'data': user_json})
