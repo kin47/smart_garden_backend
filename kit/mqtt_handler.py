@@ -4,7 +4,8 @@ from django.utils.timezone import now
 # MQTT Settings
 MQTT_SERVER = "192.168.1.9"
 MQTT_PORT = 1883
-MQTT_TOPIC = "sensor/data"
+MQTT_TOPIC = "sensor/data"  # Listening to sensor data
+MQTT_CONTROL_TOPIC_BASE = "control/"  # Base topic for sending control commands
 
 # 0: Connection accepted (successful connection).
 # 1: Connection refused, unacceptable protocol version.
@@ -61,6 +62,45 @@ def save_data_to_db(data):
         print("Data saved to the database")
     except Exception as e:
         print(f"Error saving to database: {e}")
+        
+# Function to publish a control message
+def publish_control_message(client, topic, message):
+    try:
+        result = client.publish(topic, message)
+        status = result[0]
+        if status == 0:
+            print(f"Message `{message}` sent to topic `{topic}`")
+        else:
+            print(f"Failed to send message to topic {topic}")
+    except Exception as e:
+        print(f"Error publishing message: {e}")
+
+# Control Light (Auto or Manual)
+def control_light_mode(client, mode):
+    topic = MQTT_CONTROL_TOPIC_BASE + "auto_light"
+    publish_control_message(client, topic, str(mode))
+
+def control_light_manual(client, on_off):
+    topic = MQTT_CONTROL_TOPIC_BASE + "manual_light"
+    publish_control_message(client, topic, str(on_off))
+
+# Control Pump (Auto or Manual)
+def control_pump_mode(client, mode):
+    topic = MQTT_CONTROL_TOPIC_BASE + "auto_pump"
+    publish_control_message(client, topic, str(mode))
+
+def control_pump_manual(client, on_off):
+    topic = MQTT_CONTROL_TOPIC_BASE + "manual_pump"
+    publish_control_message(client, topic, str(on_off))
+
+# Control Thresholds
+def set_light_threshold(client, threshold):
+    topic = MQTT_CONTROL_TOPIC_BASE + "light_threshold"
+    publish_control_message(client, topic, str(threshold))
+
+def set_pump_threshold(client, threshold):
+    topic = MQTT_CONTROL_TOPIC_BASE + "pump_threshold"
+    publish_control_message(client, topic, str(threshold))
 
 def start_mqtt_client():
     client = mqtt.Client()

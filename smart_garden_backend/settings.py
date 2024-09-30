@@ -49,7 +49,7 @@ INSTALLED_APPS = [
     'device_token',
     'user_management',
     'kit',
-    'kit_data',
+    'kit_management',
     'disease_detection'
 ]
 

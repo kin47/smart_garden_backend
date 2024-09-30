@@ -83,6 +83,8 @@ class DiseaseDetection(APIView):
         user = utils.getUserFromToken(access_token)
         if user is None:
             return Response(status=status.HTTP_401_UNAUTHORIZED, data={'message': 'Token không hợp lệ'})
+        if user.can_predict_disease == False:
+            return Response(status=status.HTTP_403_FORBIDDEN, data={'message': 'Tài khoản của bạn không có quyền dự đoán bệnh'})
         
         try:
             image = request.FILES['image']
