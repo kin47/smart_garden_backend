@@ -20,40 +20,43 @@ from firebase_admin import storage
 # Create your views here
 class Login(APIView):
     def post(self, request):
-        email = request.data.get('email')
-        password = request.data.get('password')
-        is_admin = request.data.get('is_admin')
-        if is_admin == None:
-            is_admin = False
-        user = User.objects.filter(email=email)
-        if len(user) == 0:
-            return Response(status=status.HTTP_403_FORBIDDEN, data={'message': 'Email hoặc mật khẩu không đúng'})
-        else:
-            user = user[0]
-            if Bcrypt.checkpw(password, user.password) == False:
+        try:
+            email = request.data.get('email')
+            password = request.data.get('password')
+            is_admin = request.data.get('is_admin')
+            if is_admin == None:
+                is_admin = False
+            user = User.objects.filter(email=email)
+            if len(user) == 0:
                 return Response(status=status.HTTP_403_FORBIDDEN, data={'message': 'Email hoặc mật khẩu không đúng'})
-            if user.is_admin != is_admin:
-                return Response(status=status.HTTP_403_FORBIDDEN, data={'message': 'Email hoặc mật khẩu không đúng'})
-            if user.is_verified == False:
-                AccountVerification.activateEmail(request, user, user.email)
-                return Response(status=status.HTTP_403_FORBIDDEN, data={'message': 'Tài khoản chưa được xác thực, hãy kiểm tra email để xác thực tài khoản'})
             else:
-                payload = {
-                    'user_id': user.id,
-                    'email': user.email,
-                    'name': user.name,
-                    'phone_number': user.phone_number,
-                    'is_admin': user.is_admin,
-                    'kit_id': user.kit_id,
-                    'expired_at': (datetime.now() + timedelta(seconds=settings.JWT_EXPIRES)).timestamp()
-                }
-                token = jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm='HS256')
-                # Delete all user's session and it's old device token
-                UserSession.objects.filter(user_id=user, deleted_at=None).update(deleted_at=datetime.now())
-                # Create new session
-                print('Token Length: ', len(token)),
-                UserSession.objects.create(user_id=user, access_token=token, created_at=datetime.now())
-                return Response(status=status.HTTP_200_OK, data={'access_token': token})
+                user = user[0]
+                if Bcrypt.checkpw(password, user.password) == False:
+                    return Response(status=status.HTTP_403_FORBIDDEN, data={'message': 'Email hoặc mật khẩu không đúng'})
+                if user.is_admin != is_admin:
+                    return Response(status=status.HTTP_403_FORBIDDEN, data={'message': 'Email hoặc mật khẩu không đúng'})
+                if user.is_verified == False:
+                    AccountVerification.activateEmail(request, user, user.email)
+                    return Response(status=status.HTTP_403_FORBIDDEN, data={'message': 'Tài khoản chưa được xác thực, hãy kiểm tra email để xác thực tài khoản'})
+                else:
+                    payload = {
+                        'user_id': user.id,
+                        'email': user.email,
+                        'name': user.name,
+                        'phone_number': user.phone_number,
+                        'is_admin': user.is_admin,
+                        'kit_id': user.kit_id.id,
+                        'expired_at': (datetime.now() + timedelta(seconds=settings.JWT_EXPIRES)).timestamp()
+                    }
+                    token = jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm='HS256')
+                    # Delete all user's session and it's old device token
+                    UserSession.objects.filter(user_id=user, deleted_at=None).update(deleted_at=datetime.now())
+                    # Create new session
+                    print('Token Length: ', len(token)),
+                    UserSession.objects.create(user_id=user, access_token=token, created_at=datetime.now())
+                    return Response(status=status.HTTP_200_OK, data={'access_token': token})
+        except Exception as e:
+            return Response(status=status.HTTP_400_BAD_REQUEST, data={'message': str(e)})
  
 class Register(APIView):
     def post(self, request):
@@ -115,7 +118,7 @@ class Me(APIView):
                 'is_admin': user.is_admin,
                 'can_predict_disease': user.can_predict_disease,
                 'can_receive_noti': user.can_receive_noti,
-                'kit_id': user.kit_id,
+                'kit_id': user.kit_id.id,
                 'is_verified': user.is_verified
             }
             return Response(status=status.HTTP_200_OK, data={'data': user_json})

@@ -1,9 +1,12 @@
 import json
 import requests
 from google.oauth2 import service_account
+from django.utils.timezone import now
 from google.auth.transport.requests import Request
 from . import settings
 from device_token.models import DeviceToken
+from authentication.models import User
+from notification.models import Notification
 
 def send_fcm_notification(user_id, body):
     # FCM HTTP v1 API URL
@@ -44,6 +47,7 @@ def send_fcm_notification(user_id, body):
         # Check for errors
         if response.status_code == 200:
             print(response.json())
+            Notification.objects.create(user=User.objects.get(id=user_id), message=body, time=now(), is_read=False)
         else:
             print(response.text)
 

@@ -1,8 +1,10 @@
 import paho.mqtt.client as mqtt
 from django.utils.timezone import now
+from django.utils import timezone
+from datetime import datetime, timedelta
 
 # MQTT Settings
-MQTT_SERVER = "192.168.1.9"
+MQTT_SERVER = "192.168.1.11"
 MQTT_PORT = 1883
 MQTT_TOPIC = "sensor/data"  # Listening to sensor data
 MQTT_CONTROL_TOPIC_BASE = "control/"  # Base topic for sending control commands
@@ -23,10 +25,16 @@ def on_connect(client, userdata, flags, rc):
 def on_message(client, userdata, msg):
     try:
         payload = msg.payload.decode()
-        print(f"Message received: {payload}")
+        # print(f"Message received: {payload}")
         data = parse_sensor_data(payload)
         if data:
-            save_data_to_db(data)
+            from .models import Kit, KitData
+            # Create a new entry in the KitData table
+            mac_address = data.get("mac_address")
+            # Get the Kit object with the given mac_address
+            kit = Kit.objects.get(mac_address=mac_address)
+            save_data_to_db(data, kit)
+            handle_to_send_notification(data, kit)
     except Exception as e:
         print(f"Failed to process message: {e}")
 
@@ -42,26 +50,82 @@ def parse_sensor_data(payload):
             "temperature": data.get("temperature"),
             "humidity": data.get("humidity"),
             "soil_moisture": data.get("soil_moisture"),
-            "light": data.get("light")
+            "light": data.get("light"),
+            "mac_address": data.get("mac_address")
         }
     except json.JSONDecodeError:
         print("Error decoding JSON")
         return None
 
-def save_data_to_db(data):
+def save_data_to_db(data, kit):
     try:
-        from .models import KitData
-        # Create a new entry in the KitData table
+        from .models import Kit, KitData
+        
         KitData.objects.create(
             temperature=data['temperature'],
             humidity=data['humidity'],
             soil_moisture=data['soil_moisture'],
             light=data['light'],
+            kit_id=kit,
             time=now()  # Save the current timestamp
         )
-        print("Data saved to the database")
     except Exception as e:
         print(f"Error saving to database: {e}")
+        
+def handle_to_send_notification(data, kit):
+    try:
+        from authentication.models import User
+        from .models import KitData, Kit
+        from notification.models import Notification
+        from smart_garden_backend.push_notification import send_fcm_notification
+        
+        users = User.objects.filter(kit_id=kit)
+        current_time = timezone.now()
+
+        # Set the time interval to prevent duplicate notifications (e.g., 1 hour)
+        notification_interval = timedelta(hours=1)
+
+        # Define the messages
+        soil_moisture_message = "Độ ẩm đất đang thấp! Hãy tưới nước cho cây!"
+        light_message = "Ánh sáng hơi yếu để cây có thể quang hợp! Hãy cân nhắc bật đèn!"
+
+        # Check if a soil moisture notification was sent within the last hour
+        if data['soil_moisture'] < kit.pump_threshold and not kit.is_auto_pump:
+            for user in users:
+                last_notification = Notification.objects.filter(
+                    user=user,
+                    message=soil_moisture_message
+                ).order_by('-time').first()
+                
+                if not last_notification or (current_time - last_notification.time) > notification_interval:
+                    send_fcm_notification(user.id, soil_moisture_message)
+                    Notification.objects.create(
+                        user=user,
+                        message=soil_moisture_message,
+                        time=current_time,
+                        is_read=False
+                    )
+
+        # Check if a light notification was sent within the last hour
+        if data['light'] < kit.light_threshold and not kit.is_auto_light:
+            for user in users:
+                last_notification = Notification.objects.filter(
+                    user=user,
+                    message=light_message
+                ).order_by('-time').first()
+                
+                if not last_notification or (current_time - last_notification.time) > notification_interval:
+                    send_fcm_notification(user.id, light_message)
+                    Notification.objects.create(
+                        user=user,
+                        message=light_message,
+                        time=current_time,
+                        is_read=False
+                    )
+
+    except Exception as e:
+        print(e)
+        return
         
 # Function to publish a control message
 def publish_control_message(client, topic, message):
@@ -78,20 +142,24 @@ def publish_control_message(client, topic, message):
 # Control Light (Auto or Manual)
 def control_light_mode(client, mode):
     topic = MQTT_CONTROL_TOPIC_BASE + "auto_light"
-    publish_control_message(client, topic, str(mode))
+    payload = '1' if mode else '0'
+    publish_control_message(client, topic, payload)
 
 def control_light_manual(client, on_off):
     topic = MQTT_CONTROL_TOPIC_BASE + "manual_light"
-    publish_control_message(client, topic, str(on_off))
+    payload = '1' if on_off else '0'
+    publish_control_message(client, topic, payload)
 
 # Control Pump (Auto or Manual)
 def control_pump_mode(client, mode):
     topic = MQTT_CONTROL_TOPIC_BASE + "auto_pump"
-    publish_control_message(client, topic, str(mode))
+    payload = '1' if mode else '0'
+    publish_control_message(client, topic, payload)
 
 def control_pump_manual(client, on_off):
     topic = MQTT_CONTROL_TOPIC_BASE + "manual_pump"
-    publish_control_message(client, topic, str(on_off))
+    payload = '1' if on_off else '0'
+    publish_control_message(client, topic, payload)
 
 # Control Thresholds
 def set_light_threshold(client, threshold):

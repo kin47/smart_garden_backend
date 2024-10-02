@@ -13,6 +13,7 @@ class Kit(models.Model):
     is_auto_light = models.BooleanField(db_column='is_auto_light')
     light_threshold = models.IntegerField(db_column='light_threshold')
     pump_threshold = models.IntegerField(db_column='pump_threshold')
+    mac_address = models.CharField(db_column='mac_address', max_length=255)
     
     def __str__(self) -> str:
         return self.name
@@ -27,6 +28,7 @@ class KitData(models.Model):
     soil_moisture = models.FloatField(db_column='soil_moisture')
     light = models.FloatField(db_column='light')
     time = models.DateTimeField(db_column='time')
+    kit_id = models.ForeignKey(Kit, on_delete=models.CASCADE, db_column='kit_id')
     
     def __str__(self):
         return f"{self.time}: {self.temperature}℃ - {self.humidity}% - {self.soil_moisture}% - {self.light}lux"

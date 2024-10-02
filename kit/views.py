@@ -22,6 +22,11 @@ class ControlKit(APIView):
             return Response({'message': 'Thiếu trường `id`'}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
+            # Initialize MQTT client
+            client = mqtt.Client()
+            client.on_connect = on_connect
+            client.connect(MQTT_SERVER, MQTT_PORT, 60)
+        
             kit = Kit.objects.get(id=kit_id)
             turn_on_pump = request.data.get('turn_on_pump')
             turn_on_light = request.data.get('turn_on_light')
