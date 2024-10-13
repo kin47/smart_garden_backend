@@ -45,9 +45,21 @@ class Login(APIView):
                         'name': user.name,
                         'phone_number': user.phone_number,
                         'is_admin': user.is_admin,
-                        'kit_id': user.kit_id.id,
                         'expired_at': (datetime.now() + timedelta(seconds=settings.JWT_EXPIRES)).timestamp()
                     }
+                    if not user.is_admin: 
+                        kit_id = None
+                        if user.kit_id is not None:
+                            kit_id = user.kit_id.id
+                        payload = {
+                            'user_id': user.id,
+                            'email': user.email,
+                            'name': user.name,
+                            'phone_number': user.phone_number,
+                            'is_admin': user.is_admin,
+                            'kit_id': kit_id,
+                            'expired_at': (datetime.now() + timedelta(seconds=settings.JWT_EXPIRES)).timestamp()
+                        }
                     token = jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm='HS256')
                     # Delete all user's session and it's old device token
                     UserSession.objects.filter(user_id=user, deleted_at=None).update(deleted_at=datetime.now())

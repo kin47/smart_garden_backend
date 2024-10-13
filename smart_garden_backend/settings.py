@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'corsheaders',
+    'channels',
     'authentication',
     'store',
     'notification',
@@ -50,7 +51,8 @@ INSTALLED_APPS = [
     'user_management',
     'kit',
     'kit_management',
-    'disease_detection'
+    'disease_detection',
+    'chat'
 ]
 
 MIDDLEWARE = [
@@ -83,6 +85,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'smart_garden_backend.wsgi.application'
+ASGI_APPLICATION = "smart_garden_backend.asgi.application"
 
 # Pagination config
 Pagination = {
@@ -103,6 +106,12 @@ DATABASES = {
         'HOST': 'localhost',
         'PORT': '3306'
     }
+}
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    },
 }
 
 # jwt config
@@ -155,11 +164,11 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Bangkok'
 
 USE_I18N = True
 
-USE_TZ = True
+USE_TZ = False
 
 
 # Static files (CSS, JavaScript, Images)

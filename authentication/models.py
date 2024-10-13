@@ -18,7 +18,7 @@ class User(models.Model):
     can_receive_noti = models.BooleanField(db_column='can_receive_noti', default=True)
     can_auto_control = models.BooleanField(db_column='can_auto_control', default=True)
     is_admin = models.BooleanField(db_column='is_admin', default=False)
-    kit_id = models.ForeignKey(Kit, on_delete=models.CASCADE, db_column='kit_id')
+    kit_id = models.ForeignKey(Kit, on_delete=models.CASCADE, db_column='kit_id', null=True, blank=True)
     is_verified = models.BooleanField(db_column='is_verified', default=False)
 
     def __str__(self) -> str:

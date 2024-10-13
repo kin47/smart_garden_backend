@@ -4,7 +4,7 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 
 # MQTT Settings
-MQTT_SERVER = "192.168.1.11"
+MQTT_SERVER = "192.168.1.12"
 MQTT_PORT = 1883
 MQTT_TOPIC = "sensor/data"  # Listening to sensor data
 MQTT_CONTROL_TOPIC_BASE = "control/"  # Base topic for sending control commands
