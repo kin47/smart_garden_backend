@@ -83,8 +83,7 @@ class UserManagement(APIView):
         
         except Exception as e:
             print(e)
-            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR, data={'message': 'Internal server error'})
-        
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR, data={'message': 'Internal server error'})      
 class UpdateUserInformation(APIView):
     def put(self, request, id):
         header = request.headers.get('Authorization')
@@ -109,6 +108,35 @@ class UpdateUserInformation(APIView):
                 modify_user.can_auto_control = can_auto_control
             modify_user.save()
             return Response(status=status.HTTP_200_OK, data={'message': 'Cập nhật thành công'})
+        except Exception as e:
+            print(e)
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR, data={'message': 'Internal server error'})
+        
+class GetUserInfo(APIView):
+    def get(self, request, id):
+        header = request.headers.get('Authorization')
+        if header is None:
+            return Response(status=status.HTTP_401_UNAUTHORIZED, data={'message': 'Token không hợp lệ'})
+        access_token = header.split(' ')[1]
+        user = utils.getUserFromToken(access_token)
+        if user is None or user.is_admin == False:
+            return Response(status=status.HTTP_401_UNAUTHORIZED, data={'message': 'Token không hợp lệ'})
+        if id is None:
+            return Response({'message': 'Thiếu trường `id`'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            user = User.objects.get(id=id)
+            return Response({'data': {
+                'id': user.id,
+                'name': user.name,
+                'email': user.email,
+                'phone_number': user.phone_number,
+                'avatar': user.avatar,
+                'can_predict_disease': user.can_predict_disease,
+                'can_receive_noti': user.can_receive_noti,
+                'can_auto_control': user.can_auto_control,
+            }}, status=status.HTTP_200_OK)
+        except User.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND, data={'message': 'Không tìm thấy người dùng'})
         except Exception as e:
             print(e)
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR, data={'message': 'Internal server error'})

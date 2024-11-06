@@ -3,6 +3,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from .models import Chat, User
 from django.utils import timezone
 from asgiref.sync import sync_to_async
+from smart_garden_backend.push_notification import send_fcm_notification
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -31,7 +32,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             action = text_data_json['action']
             if action == 'authenticate':
                 print(f"User {self.user_id} online")
-            if action == 'send-chat-message':
+            elif action == 'send-chat-message':
                 message = text_data_json['data']['message']
                 sender = text_data_json['data']['sender']  # Admin (1) or User (0)
 
@@ -45,6 +46,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     is_user_read=False if sender == 1 else True,  # Mark unread for the recipient
                     is_admin_read=False if sender == 0 else True
                 )
+                
+                # Determine the recipient's user ID
+                admin_id = 10
+                recipient_id = self.user_id if sender == 1 else admin_id  # Replace 'admin_user_id' with actual admin ID logic
+                
+                # Send push notification to the recipient
+                title = user.name if sender == 0 else "Admin"
+                print("Recipient Id:", recipient_id)
+                await sync_to_async(send_fcm_notification)(recipient_id, title, message)
 
                 # Send message to room group
                 await self.channel_layer.group_send(
@@ -55,12 +65,23 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         'sender': sender
                     }
                 )
-            if action == 'seen':
-                sender = text_data_json['sender']
+            elif action == 'seen':
+                sender = text_data_json['data']['sender']
                 if sender == 0:
-                    await sync_to_async(Chat.objects.filter)(user_id=self.user_id, sender=1, is_user_read=False).update(is_user_read=True)
+                    # User has seen the messages from the admin
+                    unread_messages = await sync_to_async(Chat.objects.filter)(user_id=self.user_id, sender=1, is_user_read=False)
+                    await sync_to_async(unread_messages.update)(is_user_read=True)
                 elif sender == 1:
-                    await sync_to_async(Chat.objects.filter)(user_id=self.user_id, sender=0, is_admin_read=False).update(is_admin_read=True)
+                    # Admin has seen the messages from the user
+                    unread_messages = await sync_to_async(Chat.objects.filter)(user_id=self.user_id, sender=0, is_admin_read=False)
+                    await sync_to_async(unread_messages.update)(is_admin_read=True)
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        'type': 'seen',
+                        'sender': sender
+                    }
+                )
         except json.JSONDecodeError as e:
             print(f"JSON decode error: {e}")
         except Exception as e:
@@ -74,5 +95,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
         # Send message to WebSocket
         await self.send(text_data=json.dumps({'action': 'send-chat-message', 'data': {
             'message': message,
+            'sender': sender
+        }}))
+        
+    async def seen(self, event):
+        sender = event['sender']
+
+        # Send message to WebSocket
+        await self.send(text_data=json.dumps({'action': 'seen', 'data': {
             'sender': sender
         }}))

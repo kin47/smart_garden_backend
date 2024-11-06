@@ -8,7 +8,7 @@ from device_token.models import DeviceToken
 from authentication.models import User
 from notification.models import Notification
 
-def send_fcm_notification(user_id, body):
+def send_fcm_notification(user_id, title, body):
     # FCM HTTP v1 API URL
     FCM_URL = 'https://fcm.googleapis.com/v1/projects/smart-garden-cd3b0/messages:send'
     
@@ -37,7 +37,7 @@ def send_fcm_notification(user_id, body):
             "message": {
                 "token": token,  # FCM token of the device
                 "notification": {
-                    "title": "Smart Garden",
+                    "title": title,
                     "body": body
                 }
             }

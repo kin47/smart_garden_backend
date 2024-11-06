@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 from pathlib import Path
 import firebase_admin
 from firebase_admin import credentials
+import socket
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -113,6 +114,14 @@ CHANNEL_LAYERS = {
         "BACKEND": "channels.layers.InMemoryChannelLayer",
     },
 }
+
+# Get the server IP address dynamically
+try:
+    SERVER_IP = socket.gethostbyname(socket.gethostname())
+except Exception as e:
+    SERVER_IP = "127.0.0.1"  # Fallback IP
+
+MQTT_SERVER = SERVER_IP
 
 # jwt config
 JWT_EXPIRES = 24 * 3600

@@ -2,9 +2,9 @@ import paho.mqtt.client as mqtt
 from django.utils.timezone import now
 from django.utils import timezone
 from datetime import datetime, timedelta
+from smart_garden_backend.settings import MQTT_SERVER
 
 # MQTT Settings
-MQTT_SERVER = "192.168.1.12"
 MQTT_PORT = 1883
 MQTT_TOPIC = "sensor/data"  # Listening to sensor data
 MQTT_CONTROL_TOPIC_BASE = "control/"  # Base topic for sending control commands
@@ -85,6 +85,8 @@ def handle_to_send_notification(data, kit):
         # Set the time interval to prevent duplicate notifications (e.g., 1 hour)
         notification_interval = timedelta(hours=1)
 
+        # title
+        title = "Smart Garden"
         # Define the messages
         soil_moisture_message = "Độ ẩm đất đang thấp! Hãy tưới nước cho cây!"
         light_message = "Ánh sáng hơi yếu để cây có thể quang hợp! Hãy cân nhắc bật đèn!"
@@ -98,7 +100,7 @@ def handle_to_send_notification(data, kit):
                 ).order_by('-time').first()
                 
                 if not last_notification or (current_time - last_notification.time) > notification_interval:
-                    send_fcm_notification(user.id, soil_moisture_message)
+                    send_fcm_notification(user.id, title, soil_moisture_message)
                     Notification.objects.create(
                         user=user,
                         message=soil_moisture_message,
@@ -115,7 +117,7 @@ def handle_to_send_notification(data, kit):
                 ).order_by('-time').first()
                 
                 if not last_notification or (current_time - last_notification.time) > notification_interval:
-                    send_fcm_notification(user.id, light_message)
+                    send_fcm_notification(user.id, title, light_message)
                     Notification.objects.create(
                         user=user,
                         message=light_message,
