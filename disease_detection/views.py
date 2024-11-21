@@ -73,6 +73,40 @@ class HistoryPredictDisease(APIView):
                 'message': str(e)
             }, status=status.HTTP_400_BAD_REQUEST)
 
+class HistoryPredictDiseaseDetail(APIView):
+    def get(self, request, id):
+        header = request.headers.get('Authorization')
+        if header is None:
+            return Response(status=status.HTTP_401_UNAUTHORIZED, data={'message': 'Token không hợp lệ'})
+        
+        access_token = header.split(' ')[1]
+        user = utils.getUserFromToken(access_token)
+        if user is None:
+            return Response(status=status.HTTP_401_UNAUTHORIZED, data={'message': 'Token không hợp lệ'})
+        if id is None:
+            return Response({'message': 'ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            predict = PredictHistory.objects.get(pk=id)
+            data = {
+                'image': predict.image,
+                'plant': predict.disease_id.tree_id.name,
+                'disease': predict.disease_id.disease_name,
+                'treatment': predict.disease_id.treatment,
+                'reference': predict.disease_id.reference,
+                'send_at': predict.send_at
+            }
+            return Response({
+                'data': data
+            }, status=status.HTTP_200_OK)
+        except PredictHistory.DoesNotExist:
+            return Response({
+                'message': 'Not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({
+                'message': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
 class DiseaseDetection(APIView):
     def post(self, request):
         header = request.headers.get('Authorization')
