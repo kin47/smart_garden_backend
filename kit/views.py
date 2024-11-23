@@ -67,6 +67,31 @@ class ControlKit(APIView):
             return Response(status=status.HTTP_200_OK, data={'message': 'Điều khiển thành công'})
         except Exception as e:
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR, data={'message': str(e)})
+
+class ConnectToKit(APIView):
+    def post(self, request):
+        header = request.headers.get('Authorization')
+        if header is None:
+            return Response(status=status.HTTP_401_UNAUTHORIZED, data={'message': 'Token không hợp lệ'})
+        access_token = header.split(' ')[1]
+        user = utils.getUserFromToken(access_token)
+        if user is None:
+            return Response(status=status.HTTP_401_UNAUTHORIZED, data={'message': 'Token không hợp lệ'})
+        try:
+            kit_id = request.data.get('kit_id')
+            password = request.data.get('password')
+            if kit_id is None:
+                return Response({'message': 'Thiếu trường `kit_id`'}, status=status.HTTP_400_BAD_REQUEST)
+            if password is None:
+                return Response({'message': 'Thiếu trường `password`'}, status=status.HTTP_400_BAD_REQUEST)
+            kit = Kit.objects.get(id=kit_id)
+            if kit.password != password:
+                return Response(status=status.HTTP_403_FORBIDDEN, data={'message': 'Sai mật khẩu'})
+            user.kit_id = kit
+            user.save()
+            return Response(status=status.HTTP_200_OK, data={'message': 'Kết nối thành công'})
+        except Exception as e:
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR, data={'message': str(e)})
         
 class KitDetail(APIView):
     def get(self, request, kit_id):

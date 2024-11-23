@@ -130,7 +130,7 @@ class Me(APIView):
                 'is_admin': user.is_admin,
                 'can_predict_disease': user.can_predict_disease,
                 'can_receive_noti': user.can_receive_noti,
-                'kit_id': user.kit_id.id,
+                'kit_id': user.kit_id.id if user.kit_id else None,
                 'is_verified': user.is_verified
             }
             return Response(status=status.HTTP_200_OK, data={'data': user_json})
