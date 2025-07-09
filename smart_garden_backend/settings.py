@@ -146,7 +146,7 @@ EMAIL_HOST_PASSWORD = 'dxrtxinhcopczslx'
 
 DEFAULT_FROM_EMAIL = 'noreply<no_reply@domain.com>'
 
-SERVICE_ACCOUNT_FILE = 'smart_garden_backend\smart-garden-cd3b0-firebase-adminsdk-ztz3u-7624df0b06.json'
+SERVICE_ACCOUNT_FILE = os.path.join(BASE_DIR, 'smart_garden_backend', 'smart-garden-cd3b0-firebase-adminsdk-ztz3u-7624df0b06.json')
 
 cred = credentials.Certificate(SERVICE_ACCOUNT_FILE)
 firebase_admin.initialize_app(cred, {
