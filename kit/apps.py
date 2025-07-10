@@ -9,7 +9,11 @@ class KitConfig(AppConfig):
 
     def ready(self):
         if os.environ.get('RUN_MAIN', None) != 'true':  # This ensures the code runs only once
-            print("Starting MQTT client...")
-            mqtt_thread = threading.Thread(target=start_mqtt_client)
-            mqtt_thread.daemon = True  # This allows Django to exit cleanly when you stop the server
-            mqtt_thread.start()
+            # Only start MQTT if explicitly enabled
+            if os.environ.get('ENABLE_MQTT', 'false').lower() == 'true':
+                print("Starting MQTT client...")
+                mqtt_thread = threading.Thread(target=start_mqtt_client)
+                mqtt_thread.daemon = True  # This allows Django to exit cleanly when you stop the server
+                mqtt_thread.start()
+            else:
+                print("MQTT client disabled. Set ENABLE_MQTT=true to enable.")
